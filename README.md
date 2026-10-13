@@ -46,6 +46,39 @@ JUDGE_MODEL=deepseek-flash JUDGE_USE_MOCK=false \
 python ../../analysis/prism_report.py results/prism-vs-ocr/prism/<run_id>
 ```
 
+### 跑对照工具（OCR）时有两个坑
+
+**① 必须显式设 `OCR_LLM_PROTOCOL=openai`。**
+
+OCR 的协议**默认是 Anthropic**（`internal/llm/resolver.go`：`useAnthropic := true // default true`）。
+只设 `OCR_LLM_URL/TOKEN/MODEL` 的话，它会拿 Anthropic 协议去打 `https://api.deepseek.com` ——
+**秒失败、0 token**，报错只有一句 `check your LLM configuration and API key`，看不出真正的原因。
+
+**② `HOME` 要指向一个没有 `.opencodereview/config.json` 的目录。**
+
+OCR 的解析顺序是「配置文件 > OCR 环境变量 > Claude Code 环境 > shell rc」，
+而**配置策略在文件存在但 provider 没配时会直接报错**，不会回落到环境变量。
+
+```bash
+mkdir -p /tmp/ocr-home            # 空目录即可
+cd aacr-bench/evaluation
+HOME=/tmp/ocr-home \
+OCR_LLM_URL=https://api.deepseek.com \
+OCR_LLM_TOKEN="$DEEPSEEK_API_KEY" \
+OCR_LLM_MODEL=deepseek-flash \
+OCR_LLM_PROTOCOL=openai \
+JUDGE_BASE_URL=https://api.deepseek.com JUDGE_API_KEY="$DEEPSEEK_API_KEY" \
+JUDGE_MODEL=deepseek-flash JUDGE_USE_MOCK=false \
+.venv/bin/python -m pipeline run --stage all --reviewer ocr \
+  --dataset data/prism-vs-ocr.jsonl --eval-rounds 5 \
+  --ocr-command /path/to/opencodereview
+```
+
+**别传 `--max-tools`。** OCR 的默认是 100，而它有个硬下限：**低于 50 会被静默夹到 50** ——
+传 30 实际生效的是 50，等于给对照对象降档（那一局会出 `status=partial`）。不传即可。
+
+**`--effort` 也别传** —— 默认 medium（2 轮），与它官方 benchmark 的口径一致。
+
 ## 三个工具
 
 | 工具 | 干什么 | 需要 Prism 吗 |
