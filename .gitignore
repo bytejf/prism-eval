@@ -1,0 +1,22 @@
+# 上游 clone 与它的产物 —— 一条都不进本仓库
+aacr-bench/
+
+# 评测产物（大：仓库缓存几百 MB、trace 与日志几十 MB）
+results/
+metrics/
+repo/
+traces/
+*.prism.json
+*.stderr.log
+*.trace.jsonl
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.idea/
+.vscode/
+.DS_Store

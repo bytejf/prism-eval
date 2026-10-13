@@ -1,0 +1,18 @@
+prism-eval
+Copyright (c) 2026 bytejf
+
+---
+
+本仓库以**依赖形式**使用 AACR-Bench，未复制其源码：
+
+    AACR-Bench
+    https://github.com/alibaba/aacr-bench
+    Copyright Alibaba Group
+    Licensed under the Apache License, Version 2.0
+    http://www.apache.org/licenses/LICENSE-2.0
+
+`setup.sh` 会把它检出到 `./aacr-bench/`（该目录在 `.gitignore` 里，不进本仓库），
+并固定在一个提交上。评测的执行、判分与数据集都来自上游 ——
+本仓库提供的是适配层、分析工具与一份补丁（见 `patches/`）。
+
+`benchmarks/*.jsonl` 是从上游数据集中**选出的 PR 子集**，同样遵循 Apache-2.0。
