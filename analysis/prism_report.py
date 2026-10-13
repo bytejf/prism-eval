@@ -69,14 +69,20 @@ def _one_sample(path: Path, data: dict[str, Any]) -> dict[str, Any]:
     log = path.with_suffix("").with_suffix(".stderr.log")
     text = log.read_text(encoding="utf-8", errors="replace") if log.exists() else ""
 
-    exit_match = re.search(r"结束审查 \S+：exit_reason=(\w+)，轮次 (\d+)", text)
+    # 「结束审查」在提示词正文里也出现（工具描述、硬约束段都会回显）——
+    # 所以必须锚到 `：exit_reason=` 上，否则一次运行抓到 6 条、只有 1 条是真的。
+    # 中间那个 `.*?` 是因为日志格式后来加了 `hunk N 个，`：把「紧挨着」写死的
+    # 正则过一阵就会静默失配（这一列曾经全是 `?`）
+    exits = re.findall(r"结束审查 \S+：exit_reason=(\w+).*?轮次 (\d+)", text)
+    reasons = sorted({reason for reason, _ in exits})
     static_match = re.search(r"静态分析完成：([\d.]+) 秒", text)
     return {
         "instance": data.get("instance_id", path.stem),
         "repo": data.get("repo", ""),
         "generated": len(data["review"].get("comments", []) or []),
-        "exit_reason": exit_match.group(1) if exit_match else "?",
-        "rounds": int(exit_match.group(2)) if exit_match else 0,
+        # 多组时把各组轮次**加起来**，退出原因去重列出（全 `end_done` 就只显示一个）
+        "exit_reason": "+".join(reasons) if reasons else "?",
+        "rounds": sum(int(rounds) for _, rounds in exits),
         "pending": stats.get("pending_hunks", 0),
         "comments_kept": stats.get("comments_count", 0),
         "cost": usage.get("cost_yuan", 0.0),
