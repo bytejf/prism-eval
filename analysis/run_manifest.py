@@ -213,6 +213,12 @@ def main() -> int:
     else:
         manifest["finished_at"] = _now()
         manifest["result"] = _summarize(args.run_dir)
+        # **配置可能在跑的过程中被改过**（实测：闸的标定值中途上调，于是同一批里
+        # 20 个样本跑在旧闸下、2 个跑在新闸下）。开跑前那份快照代表不了全程，
+        # 而看档案的人是拿它当「这一批是什么配置跑的」用的 —— 不对比就是记录失真
+        current = _config(args.prism_repo)
+        if manifest.get("config", {}).get("sha256") != current.get("sha256"):
+            manifest["config_changed_during_run"] = current
         result = manifest["result"]
         print(
             f"跑完：{result['samples_reported']} 个样本 / {result['comments']} 条评论 / "
