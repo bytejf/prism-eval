@@ -105,6 +105,10 @@ def review_instance(
         return {"instance_id": instance.instance_id, "status": "preview", "exit_code": 0}
 
     results_dir.mkdir(parents=True, exist_ok=True)
+    # **必须绝对化**：下面两个路径要交给 `prism` 子进程，而它的 `cwd` 是**仓库克隆目录**。
+    # 相对路径会被它按那个 cwd 解析 —— 报告写进仓库里，紧接着样本收尾的
+    # `git clean -fdx` 就把它删了，而整条链**返回 exit 0、状态 ok、报告目录空**。
+    results_dir = results_dir.resolve()
     json_path = results_dir / f"{instance.safe_id}.prism.json"
     # trace 写在**本次 run 的目录**里（results/<benchmark>/<reviewer>/<run_id>/），
     # 文件名即样本 id —— 设计 §4.1 想要的是「一个测试用例一个文件」，但那个文件名
